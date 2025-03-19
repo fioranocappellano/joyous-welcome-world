@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Menu, X, Twitter } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -21,7 +22,7 @@ const Navbar = () => {
   const { translations } = useLanguage();
   const isMobile = useIsMobile();
   const isTablet = useMediaQuery("(max-width: 1024px)");
-  const { activeSection, setActiveSection, scrollToSection, isHomePage } = useSectionTracker();
+  const { activeSection, setActiveSection, scrollToSection: sectionScroller, isHomePage } = useSectionTracker();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -43,6 +44,9 @@ const Navbar = () => {
   }, []);
 
   const handleNavClick = (link: { name: string, href?: string, path?: string }) => {
+    // Close mobile menu first
+    setIsMobileMenuOpen(false);
+    
     if (link.path && location.pathname === link.path) {
       // If we're already on the page, scroll to top
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -51,9 +55,8 @@ const Navbar = () => {
       navigate(link.path);
     } else {
       // Handle homepage section navigation
-      scrollToSection(link.href || "top");
+      sectionScroller(link.href || "top");
     }
-    setIsMobileMenuOpen(false);
   };
   
   const showMobileMenu = isMobile || isTablet;
