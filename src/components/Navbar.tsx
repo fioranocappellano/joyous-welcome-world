@@ -1,11 +1,15 @@
 import { useState, useEffect } from "react";
-import { Menu, X, Twitter } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Menu, X } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useLanguage } from "../contexts/LanguageContext";
-import LanguageSelector from "./LanguageSelector";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useMediaQuery } from "@/hooks/use-media-query";
+import { useSectionTracker } from "@/hooks/use-section-tracker";
+import Logo from "./navbar/Logo";
+import NavLinks from "./navbar/NavLinks";
+import MobileMenu from "./navbar/MobileMenu";
+import ActionButtons from "./navbar/ActionButtons";
+import LanguageSelector from "./LanguageSelector";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -15,10 +19,7 @@ const Navbar = () => {
   const { translations } = useLanguage();
   const isMobile = useIsMobile();
   const isTablet = useMediaQuery("(max-width: 1024px)");
-  const isHomePage = location.pathname === "/";
-
-  // State to track active section in homepage
-  const [activeSection, setActiveSection] = useState("top");
+  const { activeSection, scrollToSection, isHomePage } = useSectionTracker();
 
   // Custom hook for media queries
   function useMediaQuery(query: string) {
