@@ -1,5 +1,6 @@
 
 import React, { useEffect } from 'react';
+import { Check } from 'lucide-react';
 import NavBar from '@/components/NavBar';
 import Hero from '@/components/Hero';
 import Features from '@/components/Features';
