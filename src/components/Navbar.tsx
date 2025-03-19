@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
-import { Menu, X } from "lucide-react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Menu, X, Twitter } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import { useLanguage } from "../contexts/LanguageContext";
+import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useSectionTracker } from "@/hooks/use-section-tracker";
@@ -19,66 +21,18 @@ const Navbar = () => {
   const { translations } = useLanguage();
   const isMobile = useIsMobile();
   const isTablet = useMediaQuery("(max-width: 1024px)");
-  const { activeSection, scrollToSection, isHomePage } = useSectionTracker();
-
-  // Custom hook for media queries
-  function useMediaQuery(query: string) {
-    const [matches, setMatches] = useState(false);
-  
-    useEffect(() => {
-      const media = window.matchMedia(query);
-      const updateMatch = () => setMatches(media.matches);
-      
-      updateMatch(); // Set initial value
-      media.addEventListener("change", updateMatch);
-      
-      return () => media.removeEventListener("change", updateMatch);
-    }, [query]);
-  
-    return matches;
-  }
+  const { activeSection, setActiveSection, scrollToSection, isHomePage } = useSectionTracker();
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
-
-      if (isHomePage) {
-        // Get all sections and their positions
-        const sections = {
-          top: document.getElementById('top'),
-          community: document.getElementById('community'),
-          'top-players': document.getElementById('top-players'),
-          resources: document.getElementById('resources')
-        };
-
-        // Find which section is most visible
-        const viewportHeight = window.innerHeight;
-        const viewportMiddle = window.scrollY + (viewportHeight / 2);
-
-        let currentSection = 'top';
-        let minDistance = Infinity;
-
-        Object.entries(sections).forEach(([id, element]) => {
-          if (element) {
-            const rect = element.getBoundingClientRect();
-            const absDistance = Math.abs((window.scrollY + rect.top) - viewportMiddle);
-            if (absDistance < minDistance) {
-              minDistance = absDistance;
-              currentSection = id;
-            }
-          }
-        });
-
-        setActiveSection(currentSection);
-      }
     };
 
     window.addEventListener("scroll", handleScroll);
-
+    
     // Handle initial scroll position on refresh - always go to top on refresh
     window.addEventListener('load', () => {
       window.scrollTo(0, 0);
-      setActiveSection('top');
     });
 
     // Cleanup event listener
@@ -86,24 +40,23 @@ const Navbar = () => {
       window.removeEventListener("scroll", handleScroll);
       window.removeEventListener('load', () => {});
     };
-  }, [isHomePage]);
+  }, []);
 
-  const scrollToSection = async (sectionId: string) => {
+  const handleNavClick = (link: { name: string, href?: string, path?: string }) => {
+    if (link.path && location.pathname === link.path) {
+      // If we're already on the page, scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (link.path) {
+      // Otherwise navigate to the page
+      navigate(link.path);
+    } else {
+      // Handle homepage section navigation
+      scrollToSection(link.href || "top");
+    }
     setIsMobileMenuOpen(false);
-    
-    if (!isHomePage) {
-      navigate('/', { replace: true, state: { scrollTo: sectionId } });
-      return;
-    }
-
-    const element = document.getElementById(sectionId);
-    if (element) {
-      // Update URL hash without triggering scroll
-      window.history.pushState(null, '', `#${sectionId}`);
-      element.scrollIntoView({ behavior: 'smooth' });
-      setActiveSection(sectionId);
-    }
   };
+  
+  const showMobileMenu = isMobile || isTablet;
 
   const navLinks = [
     { name: translations.home, href: "top" },
@@ -114,32 +67,20 @@ const Navbar = () => {
     { name: "FAQ", path: "/faq" },
   ];
 
-  // Helper to check if link is active
-  const isLinkActive = (link: typeof navLinks[0]) => {
-    if (link.path) {
-      return location.pathname === link.path;
+  const navVariants = {
+    initial: { y: -20, opacity: 0 },
+    animate: { 
+      y: 0, 
+      opacity: 1,
+      transition: { duration: 0.3, ease: "easeOut" } 
     }
-    return isHomePage && activeSection === link.href;
   };
-
-  const handleNavClick = (link: typeof navLinks[0]) => {
-    if (link.path && location.pathname === link.path) {
-      // If we're already on the page, scroll to top
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else if (link.path) {
-      // Otherwise navigate to the page
-      navigate(link.path);
-    } else {
-      // Handle homepage section navigation
-      scrollToSection(link.href);
-    }
-    setIsMobileMenuOpen(false);
-  };
-  
-  const showMobileMenu = isMobile || isTablet;
 
   return (
-    <header
+    <motion.header
+      initial="initial"
+      animate="animate"
+      variants={navVariants}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled
           ? "py-3 bg-jf-dark/80 backdrop-blur-md border-b border-white/10"
@@ -147,154 +88,52 @@ const Navbar = () => {
       }`}
     >
       <div className="container mx-auto px-4 md:px-6">
-        <div className="flex items-center">
+        <div className="flex items-center justify-between">
           {/* Logo - left */}
-          <div className="flex-shrink-0">
-            <Link to="/" className="flex items-center gap-2">
-              <span className="text-2xl font-display font-bold text-white">
-                Judgment<span className="text-[#D946EF]">Fleet</span>
-              </span>
-            </Link>
-          </div>
+          <Logo />
 
           {/* Navigation - center */}
           {!showMobileMenu && (
-            <nav className="flex items-center justify-center flex-grow ml-auto">
-              <div className="max-w-4xl flex items-center gap-20">
-                {navLinks.map((link) => (
-                  link.path ? (
-                    <Link
-                      key={link.name}
-                      to={link.path}
-                      className={`relative transition-colors ${
-                        isLinkActive(link) 
-                          ? "text-white font-medium" 
-                          : "text-gray-300 hover:text-white"
-                      }`}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handleNavClick(link);
-                      }}
-                    >
-                      {link.name}
-                      {isLinkActive(link) && (
-                        <motion.div 
-                          layoutId="navbar-indicator"
-                          className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#D946EF]"
-                          transition={{ duration: 0.2, type: "spring" }}
-                        />
-                      )}
-                    </Link>
-                  ) : (
-                    <a
-                      key={link.name}
-                      href={`#${link.href}`}
-                      className={`relative transition-colors ${
-                        isLinkActive(link) 
-                          ? "text-white font-medium" 
-                          : "text-gray-300 hover:text-white"
-                      }`}
-                      onClick={(e) => {
-                        e.preventDefault(); 
-                        handleNavClick(link);
-                      }}
-                    >
-                      {link.name}
-                      {isLinkActive(link) && (
-                        <motion.div 
-                          layoutId="navbar-indicator"
-                          className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#D946EF]"
-                          transition={{ duration: 0.2, type: "spring" }}
-                        />
-                      )}
-                    </a>
-                  )
-                ))}
+            <nav className="flex items-center justify-center mx-auto">
+              <div className="flex items-center">
+                <NavLinks 
+                  links={navLinks} 
+                  activeSection={activeSection} 
+                  isHomePage={isHomePage} 
+                  handleNavClick={handleNavClick} 
+                />
               </div>
             </nav>
           )}
 
           {/* Buttons - right */}
-          {!showMobileMenu && (
-            <div className="flex items-center gap-4 flex-shrink-0">
-              <LanguageSelector />
-              <Button 
-                className="bg-[#D946EF] hover:bg-[#D946EF]/90"
-                onClick={() => window.open('https://twitter.com/JudgmentFleet', '_blank')}
-              >
-                <Twitter size={18} className="mr-2" />
-                {translations.followOnTwitter}
-              </Button>
-            </div>
-          )}
+          {!showMobileMenu && <ActionButtons />}
 
           {/* Mobile menu button */}
           {showMobileMenu && (
             <div className="flex items-center gap-3 ml-auto">
               <LanguageSelector />
-              <button
-                className="text-white"
+              <motion.button
+                className="text-white p-2 rounded-full hover:bg-white/10 transition-colors"
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                whileTap={{ scale: 0.95 }}
+                whileHover={{ backgroundColor: "rgba(255, 255, 255, 0.15)" }}
               >
                 {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-              </button>
+              </motion.button>
             </div>
           )}
         </div>
       </div>
 
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="bg-jf-gray border-t border-white/10"
-          >
-            <div className="container mx-auto px-4 py-4 flex flex-col space-y-4">
-              {navLinks.map((link) => (
-                link.path ? (
-                  <Link
-                    key={link.name}
-                    to={link.path}
-                    className={`text-gray-300 hover:text-white py-2 transition-colors ${
-                      isLinkActive(link) ? "text-white font-medium pl-2 border-l-2 border-[#D946EF]" : ""
-                    }`}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleNavClick(link);
-                    }}
-                  >
-                    {link.name}
-                  </Link>
-                ) : (
-                  <a
-                    key={link.name}
-                    href={`#${link.href}`}
-                    className={`text-gray-300 hover:text-white py-2 transition-colors ${
-                      isLinkActive(link) ? "text-white font-medium pl-2 border-l-2 border-[#D946EF]" : ""
-                    }`}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleNavClick(link);
-                    }}
-                  >
-                    {link.name}
-                  </a>
-                )
-              ))}
-              <Button 
-                className="bg-[#D946EF] hover:bg-[#D946EF]/90 w-full"
-                onClick={() => window.open('https://twitter.com/JudgmentFleet', '_blank')}
-              >
-                <Twitter size={18} className="mr-2" />
-                {translations.followOnTwitter}
-              </Button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </header>
+      <MobileMenu 
+        isOpen={isMobileMenuOpen} 
+        links={navLinks} 
+        activeSection={activeSection} 
+        isHomePage={isHomePage} 
+        handleNavClick={handleNavClick} 
+      />
+    </motion.header>
   );
 };
 

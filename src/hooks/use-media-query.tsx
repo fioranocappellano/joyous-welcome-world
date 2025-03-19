@@ -6,12 +6,23 @@ export function useMediaQuery(query: string) {
 
   useEffect(() => {
     const media = window.matchMedia(query);
-    const updateMatch = () => setMatches(media.matches);
     
-    updateMatch(); // Set initial value
+    // Set initial value with a small delay to ensure smooth transitions
+    const initialCheck = () => {
+      setMatches(media.matches);
+    };
+    
+    // Run initial check after a small delay
+    const timeoutId = setTimeout(initialCheck, 10);
+    
+    // Add event listener for subsequent changes
+    const updateMatch = () => setMatches(media.matches);
     media.addEventListener("change", updateMatch);
     
-    return () => media.removeEventListener("change", updateMatch);
+    return () => {
+      clearTimeout(timeoutId);
+      media.removeEventListener("change", updateMatch);
+    };
   }, [query]);
 
   return matches;
